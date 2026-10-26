@@ -1,0 +1,3 @@
+ring:
+  name: Zazvonit u dveří
+  description: Zahájí hovor z P4 do připravené skupiny. V první etapě spouštějte ručně; fyzické tlačítko zatím není připojené.

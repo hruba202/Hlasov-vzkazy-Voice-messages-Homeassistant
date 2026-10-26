@@ -1,0 +1,57 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dveřní zvonek P4",
+        "description": "Vyber existující P4 a 1–3 telefony prohlížečů z VoIP Stacku. Stav musí být senzor VoIP State patřící P4. Zatím se žádné skupiny nemění.",
+        "data": {
+          "door_device": "Zařízení ESPHome u dveří",
+          "door_name": "Přesný název volajícího P4 ve VoIP",
+          "camera": "USB kamera P4",
+          "player": "Přehrávač P4",
+          "door_state": "Senzor VoIP State P4",
+          "receivers": "Přijímací telefony prohlížečů (1–3)"
+        }
+      },
+      "reply": {
+        "title": "Přednastavená odpověď",
+        "description": "Vyber zvukový soubor z lokálních médií HA. Například vlastní nahrávku: Právě nemůžeme otevřít. V této etapě se po odpovědi ještě automaticky nespouští nahrávání návštěvníka.",
+        "data": {
+          "reply_label": "Popisek tlačítka odpovědi",
+          "reply": "Zvuková odpověď z Moje média"
+        }
+      }
+    },
+    "error": {
+      "door_entities": "Kamera, přehrávač a stav musí patřit vybranému zařízení P4.",
+      "receiver_count": "Vyber jeden až tři různé telefony.",
+      "local_media": "Vyber soubor z lokálních médií Home Assistanta."
+    },
+    "abort": {
+      "single_instance_allowed": "Zvonek už je nastavený. Otevři Dveřní zvonek v postranním menu.",
+      "already_configured": "Zvonek už je nastavený."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Výzva a hlasový vzkaz P4",
+        "description": "Vyber existující entity záznamníku P4 a zvukovou výzvu. Nejdřív nech automatiku vypnutou a vyzkoušej tlačítko Výzva a nahrát vzkaz 10 s. Výzva má říct, že po jejím skončení začne desetisekundový záznam.",
+        "data": {
+          "auto_after_timeout": "Po nezvednutém hovoru automaticky nabídnout a nahrát vzkaz",
+          "prompt": "Zvuková výzva před nahráváním (Moje média)",
+          "record_button": "P4: Vzkaz nahrat 10 s",
+          "cancel_button": "P4: Vzkaz zrusit",
+          "record_busy": "P4: Vzkaz zaneprazdnen (během záznamu i uploadu)",
+          "record_status": "P4: Vzkaz stav",
+          "last_reason": "P4: VoIP Last Reason"
+        }
+      }
+    },
+    "error": {
+      "busy": "Nejdřív ukonči hovor a na stránce zvonku zruš čekání nebo sekvenci vzkazu.",
+      "door_entities": "Všechny entity musí patřit P4. Tlačítko nahrávání a zrušení musí být různé.",
+      "local_media": "Vyber soubor z Moje média (lokální média HA)."
+    }
+  }
+}

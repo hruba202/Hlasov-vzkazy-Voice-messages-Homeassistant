@@ -22,8 +22,10 @@ and from the browser), and ESPHome firmware for the Waveshare ESP32-P4 board
 | D4 | Interkom P4 ↔ zařízení s displejem, obraz na kartě | testováno v obou směrech; občasné drobné sekání |
 | **Etapa 1** | **HA integrace Voice Inbox 0.3.1** | panel v HA funguje (potvrzeno uživatelem) |
 | D5 | 10 s vzkaz z P4 do Voice Inboxu | firmware připraven; ověření na desce viz `ETAPA_D5_VZKAZ_P4.md` |
+| D6 | Vlastní zvonek: HA integrace `p4_doorbell` 0.1.1 (posouzení + implementace) | testy a návod v `etapa_d6_zvonek/`; chování na reálném HA neověřeno touto revizí |
+| D7 | Zvonek + hlasové vzkazy: `p4_doorbell` 0.2.0 (přidává `mailbox.py`) | viz `etapa_d7_vzkaz/D7-NAVOD.md`; chování na reálném HA neověřeno touto revizí |
 
-Etapa 6 (vlastní zvonek) zatím **není zahrnuta**.
+Pozdější etapa (`etapa_d8_tlacitko`) zatím **není zahrnuta**.
 
 ## Voice Inbox (HA integrace)
 
@@ -45,6 +47,7 @@ Etapa 6 (vlastní zvonek) zatím **není zahrnuta**.
 | `etapa1_voice_inbox/` | integrace Voice Inbox, testy, nástroje, `VALIDATION.md` |
 | `esp32p4-*.yaml` | konfigurace ESPHome (kamera, mikrofon, interkom, vzkazy) |
 | `components/` | vlastní komponenty ESPHome (`p4_voice_inbox`, `huskylens_bridge`, `mic_48_to_16`, …) |
+| `etapa_d6_zvonek/`, `etapa_d7_vzkaz/` | HA integrace `p4_doorbell` (zvonek; od D7 i vzkazy), testy, návody |
 | `addons/p4_voice_receiver/` | původní přijímač D2 (zachováno pro historii) |
 | `home_assistant/` | ukázkové skripty a pomocné konfigurace |
 | `packages/` | hotové ZIP balíčky (viz níže) |
@@ -60,6 +63,8 @@ Etapa 6 (vlastní zvonek) zatím **není zahrnuta**.
 | `D4-intercom-package.zip` | firmware: interkom |
 | `D3-assist-package.zip` | firmware: Assist (slepá ulička) |
 | `p4_voice_receiver-0.1.0.zip` | doplněk D2 (slepá ulička) |
+| `D6-zvonek-0.1.1.zip` | HA integrace zvonku (D6) |
+| `D7-zvonek-vzkazy-0.2.0.zip` | HA integrace zvonku + vzkazy (D7, aktuální) |
 
 Balíčky byly sestaveny ze zdrojů v repozitáři; obsah každé položky odpovídá
 originálním ZIPům (kontrola SHA-256 po položkách).
@@ -73,7 +78,7 @@ originálním ZIPům (kontrola SHA-256 po položkách).
   je ověřen jen ručně na jedné instalaci.
 - Dokumentace a testy obsahují ukázkové privátní LAN adresy (192.168.x.x)
   a ukázkový název zdroje `annahp`; nejde o tajné údaje.
-- Nezahrnuto: etapa 6, `investigation/` (cizí repozitáře a logy), virtuální
+- Nezahrnuto: etapa D8, balíček D6 0.1.0 (nahrazen 0.1.1), `investigation/` (cizí repozitáře a logy), virtuální
   prostředí a sestavovací artefakty.
 - Nejde o oficiální integraci Home Assistantu.
 

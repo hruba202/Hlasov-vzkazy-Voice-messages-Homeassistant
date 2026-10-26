@@ -1,0 +1,12 @@
+{
+  "domain": "p4_doorbell",
+  "name": "Dveřní zvonek P4",
+  "version": "0.2.0",
+  "config_flow": true,
+  "single_config_entry": true,
+  "dependencies": ["voip_stack", "http", "frontend", "panel_custom", "camera", "media_player"],
+  "codeowners": [],
+  "requirements": [],
+  "iot_class": "local_push",
+  "integration_type": "service"
+}
