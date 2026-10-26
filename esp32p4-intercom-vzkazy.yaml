@@ -1,0 +1,75 @@
+# D5: rucni hlasovy vzkaz nad fungujicim D4, beze zmen pinu a revizi.
+# Kompilovat tento soubor; esp32p4-intercom.yaml a jeho base zustavaji vedle.
+packages:
+  intercom: !include esp32p4-intercom.yaml
+
+esphome:
+  build_path: build/esp32p4-intercom-vzkazy
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [p4_voice_inbox]
+
+p4_voice_inbox:
+  id: door_inbox
+  microphone_id: door_mic
+  phone_id: phone
+  receiver_ip: !secret voice_inbox_ha_ip
+  receiver_port: 8123
+  source: !secret voice_inbox_source
+  key: !secret voice_inbox_key
+  status:
+    name: Vzkaz stav
+
+script:
+  - id: inbox_record_start
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: return id(door_inbox).can_record();
+          then:
+            - media_player.stop: speaker_media_player
+            - wait_until:
+                condition:
+                  lambda: return id(door_hw_speaker).is_stopped();
+                timeout: 3s
+            - if:
+                condition:
+                  lambda: return id(door_hw_speaker).is_stopped();
+                then:
+                  - lambda: id(door_inbox).record();
+                else:
+                  - logger.log: "D5: reproduktor stale prehrava, zkuste zaznam znovu"
+          else:
+            - lambda: id(door_inbox).record();
+
+button:
+  - platform: template
+    name: Vzkaz nahrat 10 s
+    icon: mdi:microphone-message
+    on_press:
+      - script.execute: inbox_record_start
+  - platform: template
+    name: Vzkaz zastavit a ulozit
+    icon: mdi:content-save
+    on_press:
+      - lambda: id(door_inbox).save();
+  - platform: template
+    name: Vzkaz zrusit
+    icon: mdi:cancel
+    on_press:
+      - script.stop: inbox_record_start
+      - lambda: id(door_inbox).cancel();
+
+binary_sensor:
+  - platform: template
+    name: Vzkaz nahrava
+    icon: mdi:microphone
+    lambda: return id(door_inbox).recording();
+  - platform: template
+    name: Vzkaz zaneprazdnen
+    icon: mdi:progress-upload
+    lambda: return id(door_inbox).busy();

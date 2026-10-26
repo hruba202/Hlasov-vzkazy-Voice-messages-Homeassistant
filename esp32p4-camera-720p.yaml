@@ -1,0 +1,10 @@
+# Etapa C: 720p, výchozí limit 10 fps. Varianta 640x480 zůstává zachovaná.
+# Dědí původní secrets, audio, HuskyLens a připnuté závislosti.
+# Sdílí build cache se základem; poslední sestavení přepíše výstupní binárky.
+packages:
+  camera_base: !include esp32p4-camera.yaml
+
+esp_video_camera:
+  resolution: 1280x720
+  # Omezuje předávání do HA, nikoli USB frame interval kamery.
+  max_framerate: 10

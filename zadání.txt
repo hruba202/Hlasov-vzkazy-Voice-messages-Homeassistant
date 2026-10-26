@@ -1,0 +1,50 @@
+Jsi expert na ESPHome a ESP32. Odpovídej česky.
+
+CÍL
+Jedna deska Waveshare ESP32-P4 (esp32-p4-evboard, esp-idf, Ethernet IP101) s:
+1) ESPHome HomeKey (podle přiloženého vzorového YAML),
+2) čtením kamery HuskyLens přes I2C (SDA GPIO7, SCL GPIO8, adresa 0x32),
+3) media_player (ES8311 + reproduktor), voice_assistant NECHCI,
+4) BLE proxy.
+Nakonec (až úplně poslední, jen jako návrh): Zigbee presence senzor na ESP32-C6 s mým hotovým firmwarem.
+
+KLÍČOVÉ OTÁZKY, KTERÉ MI ZODPOVĚZ NA ZAČÁTKU (než začneš psát kód)
+- Funguje BLE proxy na ESP32-P4 přes C6 koprocesor (esp_hosted) v mojí verzi ESPHome? Pokud ne, navrhni alternativu.
+- Je C6 na desce použitý jako Wi-Fi/BT koprocesor? Vylučuje to jeho použití jako samostatného Zigbee senzoru?
+- Spustí se komponenta HomeKey z mého vzorového YAML na P4 pod esp-idf? Co přesně vyžaduje (NFC čtečka, piny, sdkconfig, partition table)?
+- Kterou verzi ESPHome mám použít? Moje verze: [DOPLŇ]
+
+HOMEKEY
+Použij https://github.com/rednblkx/HAP-ESPHome (external_components: github://rednblkx/HAP-ESPHome@main).
+- Entita lock s nfc_id, NFC čtečka je POUZE pn532_spi (I2C nejde).
+- V esp32: sdkconfig_options přidej CONFIG_COMPILER_OPTIMIZATION_SIZE, CONFIG_LWIP_MAX_SOCKETS "16" a CONFIG_MBEDTLS_HKDF_C.
+- Použij esp-idf verze 5.
+- Navrhni SPI piny na 40pin headeru, které nekolidují s Ethernetem, SDIO k C6, SD kartou ani audio.
+- Ověř, jestli HomeKit z repozitáře funguje přes Ethernet na P4.
+
+HARDWARE A PINY
+Piny nehádej. Pokud něco neznáš, dej do YAML výrazně označený placeholder a napiš, co mám ověřit ve schématu desky. Zvlášť se týká: ES8311 (MCLK, I2S), NFC čtečky pro HomeKey, případných kolizí pinů s Ethernetem.
+
+CO MÁM A CO NEFUNGUJE
+1. Chybí audio_dac pro ES8311 a MCLK, takže reproduktor mlčí.
+2. huskylens_bridge.h je psaný pro Arduino (Wire) a pod esp-idf se nepřeloží. Přepiš ho přes i2c::I2CDevice a sběrnici bus_a (ať už jako externí komponentu, nebo custom komponentu).
+3. Binární senzor "HuskyLens Object Detected" nemá lambda.
+4. Šest template senzorů má update_interval 50 ms. Navrhni rozumný interval a filtr (delta).
+5. Používám api i mqtt. Chci jen api, MQTT odstraň.
+6. Odstraň voice_assistant, globals "init_in_progress" a vše nepoužívané. Media player ponech.
+
+POŽADAVKY
+- Hesla a klíče jen přes !secret.
+- Jen existující komponenty a volby ESPHome, u nejistých uveď odkaz na dokumentaci nebo repozitář.
+- Vzorový HomeKey YAML použij jako předlohu, neměň jeho logiku bez vysvětlení.
+
+POSTUP (po každé etapě se zastav)
+Etapa 1: HuskyLens (header + senzory) a úklid YAML.
+Etapa 2: media_player (ES8311).
+Etapa 3: HomeKey.
+Etapa 4: BLE proxy.
+Etapa 5: jen návrh řešení Zigbee senzoru na C6.
+U každé etapy: celý výsledný YAML, seznam změn a co mám ověřit.
+
+PŘILOŽENO
+[aktuální YAML, huskylens_bridge.h, vzorový HomeKey YAML + odkaz na repozitář]

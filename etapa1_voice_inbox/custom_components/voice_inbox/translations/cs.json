@@ -1,0 +1,25 @@
+{
+  "title": "Hlasové vzkazy",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Přidat zdroj vzkazů",
+        "description": "Pouze přímé připojení z LAN. Nabu Casa a přeposílané požadavky jsou odmítnuté. Pro každý zdroj použijte jiný náhodný klíč o 64 hexadecimálních znacích. Ukládá se pouze jeho otisk.",
+        "data": {
+          "source": "Identifikátor zdroje (například dvere)",
+          "network": "Povolená síť LAN (například 192.168.0.0/24)",
+          "key": "Klíč pro upload (64 malých hexadecimálních znaků)"
+        }
+      }
+    },
+    "error": {
+      "invalid_source": "Použijte 1–32 malých písmen bez diakritiky, číslic, podtržítek nebo pomlček, první znak musí být písmeno.",
+      "invalid_network": "Zadejte privátní IPv4 nebo ULA IPv6 síť v přesném zápisu CIDR.",
+      "invalid_key": "Zadejte náhodně vygenerovaný klíč: přesně 64 malých hexadecimálních znaků.",
+      "duplicate_key": "Pro každý zdroj použijte jiný klíč."
+    },
+    "abort": {
+      "already_configured": "Tento zdroj je již nastavený."
+    }
+  }
+}

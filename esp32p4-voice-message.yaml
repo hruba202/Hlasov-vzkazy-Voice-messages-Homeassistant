@@ -1,0 +1,77 @@
+# D2: desetisekundovy WAV v Home Assistant OS. Nejde o zivy poslech.
+packages:
+  camera: !include esp32p4-camera-720p.yaml
+
+esphome:
+  build_path: build/esp32p4-voice-message
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [voice_recorder]
+
+audio_dac:
+  - id: !extend es8311_dac
+    use_microphone: false
+    mic_gain: 24DB
+
+microphone:
+  - platform: i2s_audio
+    id: message_mic
+    i2s_audio_id: i2s_bus
+    adc_type: external
+    i2s_din_pin: GPIO11
+    pdm: false
+    sample_rate: 48000
+    bits_per_sample: 16bit
+    channel: left
+    mclk_multiple: 256
+    correct_dc_offset: true
+
+voice_recorder:
+  id: message_recorder
+  microphone_id: message_mic
+  receiver_ip: !secret voice_receiver_ip
+  receiver_port: 8099
+  token: !secret voice_receiver_token
+  status:
+    name: "Vzkaz stav"
+
+button:
+  - platform: template
+    name: "Nahrat vzkaz 10 s"
+    on_press:
+      - if:
+          condition:
+            lambda: return id(box_speaker).is_stopped() && !id(es8311_dac).is_failed();
+          then:
+            - lambda: id(message_recorder).record();
+          else:
+            - logger.log:
+                level: WARN
+                format: "D2: nejprve zastavte prehravani a overte kodek"
+  - platform: template
+    name: "Zrusit nahravani vzkazu"
+    on_press:
+      - lambda: id(message_recorder).cancel();
+
+binary_sensor:
+  - platform: template
+    name: "Vzkaz probiha"
+    lambda: return id(message_recorder).busy();
+  - platform: template
+    name: "Mikrofon snima"
+    lambda: return id(message_mic).is_running();
+
+sensor:
+  - platform: sound_level
+    microphone: message_mic
+    passive: true
+    measurement_duration: 1s
+    rms:
+      name: "Mikrofon RMS"
+      entity_category: diagnostic
+    peak:
+      name: "Mikrofon Peak"
+      entity_category: diagnostic

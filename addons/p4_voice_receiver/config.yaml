@@ -1,0 +1,23 @@
+name: "P4 hlasove vzkazy"
+version: "0.1.0"
+slug: "p4_voice_receiver"
+description: "Prijem desetisekundovych hlasovych vzkazu z ESP32-P4 do mistnich medii"
+arch:
+  - amd64
+  - aarch64
+startup: services
+boot: auto
+init: false
+ports:
+  8099/tcp: 8099
+ports_description:
+  8099/tcp: "Prijem zvuku z ESP32-P4 (pouze mistni sit)"
+map:
+  - type: media
+    read_only: false
+options:
+  token: ""
+  max_recordings: 100
+schema:
+  token: password
+  max_recordings: int(1,10000)

@@ -1,0 +1,25 @@
+{
+  "title": "Voice Inbox",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add an upload source",
+        "description": "Direct LAN uploads only. Nabu Casa and forwarded requests are rejected. Use a different random 64-character hexadecimal key for each source. Only its digest is saved.",
+        "data": {
+          "source": "Source ID (e.g. dvere)",
+          "network": "Allowed LAN subnet (e.g. 192.168.0.0/24)",
+          "key": "Upload key (64 lowercase hexadecimal characters)"
+        }
+      }
+    },
+    "error": {
+      "invalid_source": "Use 1–32 lowercase letters, digits, underscores or hyphens, starting with a letter.",
+      "invalid_network": "Enter a private IPv4 or ULA IPv6 network in strict CIDR notation.",
+      "invalid_key": "Enter a randomly generated key: exactly 64 lowercase hexadecimal characters.",
+      "duplicate_key": "Use a different key for each source."
+    },
+    "abort": {
+      "already_configured": "This source is already configured."
+    }
+  }
+}

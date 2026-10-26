@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.test-venv/
+.wsl-venv/
+.venv/
+*.wav
+*.pcm
+*.zip
+secrets.yaml
+.env

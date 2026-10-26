@@ -1,0 +1,92 @@
+# Etapa D1: pouze test vstupu mikrofonu, bez prenosu a ukladani zvuku.
+# Kamera 720p, HuskyLens a media_player se dedi beze zmeny.
+packages:
+  camera: !include esp32p4-camera-720p.yaml
+
+esphome:
+  build_path: build/esp32p4-microphone-test
+
+# Analogovy mikrofon MIC1 -> ES8311 -> ASDOUT GPIO11 (schema Waveshare).
+# use_microphone: true by na kodeku vybralo PDM; ponechavame false.
+audio_dac:
+  - id: !extend es8311_dac
+    use_microphone: false
+    mic_gain: 24DB
+
+microphone:
+  - platform: i2s_audio
+    id: onboard_mic
+    i2s_audio_id: i2s_bus
+    adc_type: external
+    i2s_din_pin: GPIO11
+    pdm: false
+    sample_rate: 48000
+    bits_per_sample: 16bit
+    channel: left
+    mclk_multiple: 256
+    correct_dc_offset: true
+
+sensor:
+  - platform: sound_level
+    id: mic_level
+    microphone: onboard_mic
+    # Mikrofon se po startu desky sam nezapina.
+    passive: true
+    measurement_duration: 1s
+    rms:
+      name: "Mikrofon RMS"
+      entity_category: diagnostic
+    peak:
+      name: "Mikrofon Peak"
+      entity_category: diagnostic
+
+binary_sensor:
+  - platform: template
+    name: "Mikrofon snima"
+    entity_category: diagnostic
+    lambda: return id(onboard_mic).is_running();
+
+button:
+  - platform: template
+    name: "Mikrofon test 30 s"
+    entity_category: diagnostic
+    on_press:
+      - script.execute: mic_test
+  - platform: template
+    name: "Mikrofon stop"
+    entity_category: diagnostic
+    on_press:
+      - script.stop: mic_test
+      - microphone.stop_capture: onboard_mic
+      - logger.log: "D1: mikrofon - pozadavek na zastaveni"
+
+script:
+  - id: mic_test
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: return id(box_speaker).is_stopped() && !id(es8311_dac).is_failed();
+          then:
+            - logger.log: "D1: spoustim mikrofon 48000 Hz / 16 bit / levy kanal"
+            - microphone.capture: onboard_mic
+            - wait_until:
+                condition:
+                  microphone.is_capturing: onboard_mic
+                timeout: 5s
+            - if:
+                condition:
+                  microphone.is_capturing: onboard_mic
+                then:
+                  - logger.log: "D1: mikrofon bezi, test 30 sekund"
+                  - delay: 30s
+                else:
+                  - logger.log:
+                      level: WARN
+                      format: "D1: mikrofon se do 5 sekund nerozbehl"
+            - microphone.stop_capture: onboard_mic
+            - logger.log: "D1: konec testu, uvolnuji I2S"
+          else:
+            - logger.log:
+                level: WARN
+                format: "D1: test odmitnut - zastavte prehravani a overte ES8311"

@@ -1,0 +1,263 @@
+# ETAPA 3 – NAVRH, ZATIM NEFLASHOVAT.
+# HAP SDK z upstreamu nema podporu P4 v esp_mfi_i2c.c; viz ETAPA3.md.
+esphome:
+  name: esp32p4
+  friendly_name: ESP32-P4
+  on_boot:
+    priority: -100
+    then:
+      - if:
+          condition:
+            lambda: return !id(es8311_dac).is_failed();
+          then:
+            - switch.turn_on: speaker_amp
+  on_shutdown:
+    priority: 700
+    then:
+      - switch.turn_off: speaker_amp
+
+esp32:
+  board: esp32-p4-evboard
+  # Waveshare ESP32-P4-WIFI6-POE-ETH: 32 MB NOR flash dle vyrobce.
+  flash_size: 32MB
+  cpu_frequency: 360MHz
+  framework:
+    type: esp-idf
+    version: 5.5.5
+    advanced:
+      enable_idf_experimental_features: yes
+    sdkconfig_options:
+      CONFIG_COMPILER_OPTIMIZATION_SIZE: y
+      CONFIG_LWIP_MAX_SOCKETS: "16"
+      CONFIG_MBEDTLS_HKDF_C: y
+      CONFIG_SPIRAM_XIP_FROM_PSRAM: y
+      CONFIG_SPIRAM_USE_MALLOC: y
+      CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL: "65536"
+
+psram:
+  speed: 200MHz
+  ignore_not_found: false
+
+# Přesné mapování pro ethernetový čip IP101 na Waveshare desce
+ethernet:
+  type: IP101
+  mdc_pin: GPIO31
+  mdio_pin: GPIO52
+  power_pin: GPIO51
+  clk:
+    pin: GPIO50
+    mode: CLK_EXT_IN
+  phy_addr: 1
+
+api:
+  encryption:
+    key: !secret esp_encryption_key # Vygeneruje Home Assistant
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+logger:
+  level: DEBUG
+
+# Inicializace sběrnice pro HuskyLens (SH1.0 I2C konektor na desce)
+i2c:
+  - id: bus_a
+    sda: GPIO7
+    scl: GPIO8
+    scan: true
+    frequency: 100kHz
+
+# Waveshare ESP32-P4-WIFI6-POE-ETH, schema: Codec U10 / PA U8.
+i2s_audio:
+  - id: i2s_bus
+    i2s_lrclk_pin: GPIO10
+    i2s_bclk_pin: GPIO12
+    i2s_mclk_pin: GPIO13
+
+audio_dac:
+  - platform: es8311
+    id: es8311_dac
+    i2c_id: bus_a
+    address: 0x18
+    use_mclk: true
+    sample_rate: 48000
+    bits_per_sample: 16bit
+
+# PA_CTRL je aktivni v log. 1. Zapnout az po inicializaci kodeku.
+switch:
+  - platform: gpio
+    id: speaker_amp
+    internal: true
+    pin: GPIO53
+    restore_mode: ALWAYS_OFF
+
+# 3. Nastavení výstupu do reproduktoru přes kodek ES8311
+speaker:
+  - platform: i2s_audio
+    id: box_speaker
+    i2s_audio_id: i2s_bus
+    i2s_dout_pin: GPIO9
+    dac_type: external
+    audio_dac: es8311_dac
+    sample_rate: 48000
+    bits_per_sample: 16bit
+    channel: left
+    mclk_multiple: 256
+
+media_player:
+  - platform: speaker
+    name: "p4_player"
+    id: speaker_media_player
+    volume_min: 0.3
+    volume_max: 0.8
+    volume_initial: 0.3
+    announcement_pipeline:
+      speaker: box_speaker
+      format: FLAC
+      sample_rate: 48000
+      num_channels: 1
+
+sensor:
+  - platform: template
+    name: "HuskyLens ID"
+    id: husky_id
+    icon: "mdi:identifier"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(0);
+    accuracy_decimals: 0
+    filters:
+      - delta: 0.5
+
+  - platform: template
+    name: "HuskyLens X"
+    id: husky_x
+    icon: "mdi:axis-x-arrow"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(1);
+    accuracy_decimals: 0
+    filters:
+      - delta: 2.0
+
+  - platform: template
+    name: "HuskyLens Y"
+    id: husky_y
+    icon: "mdi:axis-y-arrow"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(2);
+    accuracy_decimals: 0
+    filters:
+      - delta: 2.0
+
+  - platform: template
+    name: "HuskyLens Width"
+    id: husky_width
+    icon: "mdi:arrow-expand-horizontal"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(3);
+    accuracy_decimals: 0
+    filters:
+      - delta: 2.0
+
+  - platform: template
+    name: "HuskyLens Height"
+    id: husky_height
+    icon: "mdi:arrow-expand-vertical"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(4);
+    accuracy_decimals: 0
+    filters:
+      - delta: 2.0
+
+  - platform: template
+    name: "HuskyLens Command"
+    id: husky_command
+    icon: "mdi:cog-outline"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(5);
+    accuracy_decimals: 0
+    filters:
+      - delta: 0.5
+
+# Bonus: Binární senzor, který v HA ukáže "on", pokud kamera právě něco detekuje
+binary_sensor:
+  - platform: template
+    name: "HuskyLens Object Detected"
+    id: husky_detected
+    device_class: presence
+    lambda: |-
+      return id(husky).detected();
+
+  - platform: template
+    name: "HuskyLens Communication OK"
+    entity_category: diagnostic
+    lambda: |-
+      return id(husky).valid();
+
+external_components:
+  - source: github://rednblkx/HAP-ESPHome@main
+    components: [homekit_base, homekit, pn532, pn532_spi]
+  - source:
+      type: local
+      path: components
+    components: [huskylens_bridge]
+
+huskylens_bridge:
+  id: husky
+  i2c_id: bus_a
+  address: 0x32
+  update_interval: 250ms
+
+# GPIO2–5 jsou vyvedeny na P6 (40pin header), bez kolize s ETH/SDIO/audio/SD.
+# Cisla GPIO nejsou fyzicka cisla kontaktu P6!
+spi:
+  id: nfc_spi_bus
+  clk_pin: GPIO2
+  miso_pin: GPIO3
+  mosi_pin: GPIO4
+
+pn532_spi:
+  id: nfc_spi_module
+  spi_id: nfc_spi_bus
+  cs_pin: GPIO5
+  update_interval: 100ms
+
+# Stejna logika jako ve vzoru; zatim pouze stavova entita, bez ovladani rele.
+lock:
+  - platform: template
+    id: this_lock
+    name: "Main Lock"
+    optimistic: true
+    on_lock:
+      - logger.log: "Door Locked!"
+    on_unlock:
+      - logger.log: "Door Unlocked!"
+
+mdns:
+
+homekit_base:
+  setup_code: !secret homekit_setup_code
+
+homekit:
+  lock:
+    - id: this_lock
+      nfc_id: nfc_spi_module
+      on_hk_success:
+        lambda: |-
+          ESP_LOGI("homekey", "IssuerID: %s", x.c_str());
+          ESP_LOGI("homekey", "EndpointID: %s", y.c_str());
+          if (id(this_lock).state == lock::LOCK_STATE_LOCKED) {
+            id(this_lock).unlock();
+          } else {
+            id(this_lock).lock();
+          }
+      on_hk_fail:
+        lambda: |-
+          ESP_LOGW("homekey", "HomeKey authentication failed");
+      hk_hw_finish: "SILVER"

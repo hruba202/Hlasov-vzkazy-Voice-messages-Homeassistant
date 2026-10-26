@@ -1,0 +1,194 @@
+# D4: zvukovy SIP interkom; kamera a HuskyLens zdedeny beze zmen.
+packages:
+  base: !include esp32p4-intercom-base.yaml
+
+esphome:
+  build_path: build/esp32p4-intercom
+
+api:
+  custom_services: true
+
+external_components:
+  # Audio Stack 0482d74 pouziva puvodni ABI RingBuffer (handle_ jako clen).
+  # ESPHome 2026.10 jej zmenilo na metodu. Pripiname pouze tuto komponentu.
+  - source:
+      type: git
+      url: https://github.com/esphome/esphome
+      ref: c6e4c87e525dd343e470d8dea368957a002f6505
+    components: [ring_buffer]
+  - source:
+      type: local
+      path: components
+    components: [camera_log_compat]
+  - source:
+      type: git
+      url: https://github.com/youkorr/esphome
+      ref: 53a315e76c69178d913e6744314408a98bc87234
+    components: [esp_video_camera]
+  - source:
+      type: git
+      url: https://github.com/n-IA-hane/esphome-audio-stack
+      ref: 0482d741a938378ef948e3b8f3dd31536f9f2cc9
+    components: [esp_audio_stack]
+  - source:
+      type: git
+      url: https://github.com/n-IA-hane/esphome-voip-stack
+      ref: c693b4e75008afb5d2f584a09035aee2743a2210
+    components: [voip_stack]
+
+# Jeden vlastnik kodeku a obou smeru I2S. Puvodni soubor se nemeni.
+
+esp_audio_stack:
+  id: door_audio
+  buffers_in_psram: true
+  i2s_lrclk_pin: GPIO10
+  i2s_bclk_pin: GPIO12
+  i2s_mclk_pin: GPIO13
+  i2s_din_pin: GPIO11
+  i2s_dout_pin: GPIO9
+  sample_rate: 48000
+  bits_per_sample: 16
+  num_channels: 1
+  mic_channel: left
+  tx_channel: left
+  mclk_multiple: 256
+  correct_dc_offset: true
+  codec:
+    i2c_id: bus_a
+    input:
+      type: es8311
+      address: 0x18
+      gain_db: 24
+      use_mclk: true
+      no_dac_ref: true
+    output:
+      type: es8311
+      address: 0x18
+      use_mclk: true
+      no_dac_ref: true
+
+microphone:
+  - platform: esp_audio_stack
+    id: door_mic
+    esp_audio_stack_id: door_audio
+
+# Zachovany media_player stale pouziva box_speaker, nyni vstup mixeru.
+speaker:
+  - platform: esp_audio_stack
+    id: door_hw_speaker
+    esp_audio_stack_id: door_audio
+    sample_rate: 48000
+    bits_per_sample: 16
+    timeout: 1s
+  - platform: mixer
+    id: door_mixer
+    output_speaker: door_hw_speaker
+    num_channels: 1
+    source_speakers:
+      - id: box_speaker
+        buffer_duration: 100ms
+        timeout: 1s
+      - id: door_call_mix
+        buffer_duration: 128ms
+        timeout: 1s
+  - platform: resampler
+    id: door_call_speaker
+    output_speaker: door_call_mix
+    bits_per_sample: 16
+    sample_rate: 48000
+    buffer_duration: 128ms
+
+voip_stack:
+  id: phone
+  transport: udp
+  sip_port: 5060
+  rtp_port: 40000
+  use_ha_as_first_contact: true
+  ringing_timeout: 30s
+  task_stacks_in_psram: true
+  audio_task_stacks_in_psram: true
+  signaling_buffers_in_psram: true
+  buffers_in_psram: true
+  microphone_source:
+    microphone: door_mic
+    bits_per_sample: 16
+    channels: [0]
+  speaker: door_call_speaker
+  audio:
+    tx:
+      codec: pcm
+      sample_rate: 48000
+      pcm_format: s16le
+      channels: 1
+      frame_ms: 10
+    rx:
+      codec: pcm
+      sample_rate: 48000
+      pcm_format: s16le
+      channels: 1
+      frame_ms: 10
+  on_calling:
+    - media_player.stop: speaker_media_player
+  on_ringing:
+    - media_player.stop: speaker_media_player
+  on_in_call:
+    - logger.log: "D4: hovor aktivni"
+  on_hangup:
+    - logger.log:
+        format: "D4: konec hovoru: %s"
+        args: ['reason.c_str()']
+
+switch:
+  - platform: voip_stack
+    auto_answer:
+      name: Interkom automaticky prijem
+      restore_mode: RESTORE_DEFAULT_OFF
+    dnd:
+      name: Interkom nerusit
+      restore_mode: RESTORE_DEFAULT_OFF
+  - platform: template
+    name: Interkom ztlumit mikrofon
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - microphone.mute: door_mic
+    on_turn_off:
+      - microphone.unmute: door_mic
+
+button:
+  - platform: template
+    name: Interkom volat prijmout zavesit
+    on_press:
+      - voip_stack.call_toggle:
+  - platform: template
+    name: Interkom dalsi kontakt
+    on_press:
+      - voip_stack.next_contact:
+  - platform: template
+    name: Interkom predchozi kontakt
+    on_press:
+      - voip_stack.prev_contact:
+  - platform: template
+    name: Interkom odmitnout
+    on_press:
+      - voip_stack.decline_call:
+  - platform: template
+    name: Interkom diagnostika
+    entity_category: diagnostic
+    on_press:
+      - voip_stack.dump_diagnostics:
+
+esp32:
+  framework:
+    version: 5.5.5
+psram:
+  mode: hex
+  speed: 200MHz
+camera_log_compat:
+esp_video_camera:
+  name: USB Camera
+  device: uvc
+  enable_uvc: true
+  resolution: 1280x720
+  max_framerate: 10
+  usb_peripheral_map: 0x01

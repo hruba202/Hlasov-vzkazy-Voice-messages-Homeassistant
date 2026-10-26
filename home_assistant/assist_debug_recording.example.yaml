@@ -1,0 +1,6 @@
+# VOLITELNE: sloucit s configuration.yaml HA, nevytvaret duplicitni klic.
+# Po zmene overit konfiguraci a restartovat HA.
+# Diagnostika muze zaznamenavat take OSTATNI Assist zarizeni!
+# Soubory automaticky nemaze. Po testu volbu odstranit a znovu restartovat HA.
+assist_pipeline:
+  debug_recording_dir: /media/assist_debug

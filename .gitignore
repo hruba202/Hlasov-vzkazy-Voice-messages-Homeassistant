@@ -1,0 +1,12 @@
+.venv/
+.venv-2026.10/
+.esphome/
+__pycache__/
+secrets.yaml
+validate-stage1.yaml
+validate-stage2.yaml
+validation-stage2.log
+.reference/
+validate-stage3.yaml
+validation-stage3.log
+homekey-build.log

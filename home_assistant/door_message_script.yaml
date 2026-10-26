@@ -1,0 +1,71 @@
+# Vlozit do HA: Nastaveni -> Automatizace a sceny -> Skripty -> Novy skript
+# -> Upravit v YAML. Toto je OBSAH jednoho skriptu, ne cele scripts.yaml.
+alias: "Dvere - prijmout textovy vzkaz"
+description: "Prehraje vyzvu, zachyti volny prepis a zobrazi jej v HA. Bez vykonavani prikazu."
+mode: single
+fields:
+  satellite:
+    name: "Assist satelit na dverich"
+    required: true
+    selector:
+      entity:
+        domain: assist_satellite
+  player:
+    name: "Prehravac na stejne desce"
+    required: true
+    selector:
+      entity:
+        domain: media_player
+  archive_notify:
+    name: "Volitelny textovy archiv (File notify entita)"
+    description: "Pro prvni test nechte prazdne. Po nastaveni integrace File vyberte jeji notify entitu."
+    required: false
+    selector:
+      entity:
+        domain: notify
+sequence:
+  - if:
+      - condition: template
+        value_template: "{{ states(satellite) != 'idle' }}"
+    then:
+      - action: persistent_notification.create
+        data:
+          title: "Vzkaz od dveri - nelze spustit"
+          message: "Satelit neni pripraveny: {{ states(satellite) }}. Overte pripojeni a stav predchoziho behu."
+      - stop: "Satelit neni v klidu"
+  - action: media_player.media_stop
+    target:
+      entity_id: "{{ player }}"
+  - delay: "00:00:01"
+  - action: assist_satellite.ask_question
+    data:
+      entity_id: "{{ satellite }}"
+      question: "Prosím, řekněte krátký vzkaz pro majitele."
+      preannounce: false
+    response_variable: door_answer
+    continue_on_error: true
+  - if:
+      - condition: template
+        value_template: >-
+          {{ door_answer is defined and door_answer is mapping
+             and (door_answer.get('sentence', '') | trim | length) > 0 }}
+    then:
+      - action: persistent_notification.create
+        data:
+          title: "Vzkaz od dveri - {{ now().strftime('%d.%m. %H:%M') }}"
+          message: "{{ door_answer.sentence }}"
+      - if:
+          - condition: template
+            value_template: "{{ (archive_notify | default('', true) | length) > 0 }}"
+        then:
+          - action: notify.send_message
+            target:
+              entity_id: "{{ archive_notify }}"
+            data:
+              message: >-
+                {{ {'time': now().isoformat(), 'text': door_answer.sentence} | to_json }}
+    else:
+      - action: persistent_notification.create
+        data:
+          title: "Vzkaz od dveri - bez prepisu"
+          message: "Nepodarilo se ziskat text. Zkontrolujte stopu skriptu, ceskou STT pipeline a log ESPHome."

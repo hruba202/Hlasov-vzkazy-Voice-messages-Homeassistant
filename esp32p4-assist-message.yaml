@@ -1,0 +1,93 @@
+# D3: standardni Assist, volny prepis pres HA assist_satellite.ask_question.
+# Bez vlastniho HTTP prijimace. Puvodni codec i prehravani zustavaji 48 kHz.
+packages:
+  camera: !include esp32p4-camera-720p.yaml
+
+esphome:
+  build_path: build/esp32p4-assist-message
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [mic_48_to_16]
+
+audio_dac:
+  - id: !extend es8311_dac
+    use_microphone: false
+    mic_gain: 24DB
+
+microphone:
+  - platform: i2s_audio
+    id: door_mic_raw
+    i2s_audio_id: i2s_bus
+    adc_type: external
+    i2s_din_pin: GPIO11
+    pdm: false
+    sample_rate: 48000
+    bits_per_sample: 16bit
+    channel: left
+    mclk_multiple: 256
+    correct_dc_offset: true
+  - platform: mic_48_to_16
+    id: door_mic_assist
+    source_microphone: door_mic_raw
+
+voice_assistant:
+  id: door_assist
+  microphone: door_mic_assist
+  media_player: speaker_media_player
+  use_wake_word: false
+  noise_suppression_level: 0
+  auto_gain: 0dBFS
+  volume_multiplier: 1.0
+  on_start:
+    - script.execute: assist_timeout
+    - logger.log: "D3: Assist pipeline spustena"
+  on_stt_end:
+    - logger.log: "D3: prepis prijat; text vraci HA skriptu"
+  on_end:
+    - script.stop: assist_timeout
+    - logger.log: "D3: Assist pipeline ukoncena"
+  on_error:
+    - script.stop: assist_timeout
+    - logger.log:
+        level: WARN
+        format: "D3: chyba Assist: %s"
+        args: ['code.c_str()']
+
+script:
+  - id: assist_timeout
+    mode: restart
+    then:
+      - delay: 45s
+      - logger.log:
+          level: WARN
+          format: "D3: ochranny limit 45 s, zastavuji Assist"
+      - voice_assistant.stop:
+          id: door_assist
+
+# Spousteni otazky je pouze z HA skriptu; zadny wake word ani volny start.
+button:
+  - platform: template
+    name: "Vzkaz zastavit"
+    on_press:
+      - voice_assistant.stop:
+          id: door_assist
+
+binary_sensor:
+  - platform: template
+    name: "Mikrofon snima"
+    lambda: return id(door_mic_raw).is_running();
+
+sensor:
+  - platform: sound_level
+    microphone: door_mic_assist
+    passive: true
+    measurement_duration: 1s
+    rms:
+      name: "Mikrofon RMS"
+      entity_category: diagnostic
+    peak:
+      name: "Mikrofon Peak"
+      entity_category: diagnostic

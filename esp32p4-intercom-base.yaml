@@ -1,0 +1,180 @@
+# D4: kopie zakladu; I2S a kodek vlastni esp_audio_stack v hlavnim YAML.
+esphome:
+  name: esp32p4
+  friendly_name: ESP32-P4
+  on_boot:
+    priority: -100
+    then:
+      - if:
+          condition:
+            lambda: return !id(door_audio).is_failed();
+          then:
+            - switch.turn_on: speaker_amp
+  on_shutdown:
+    priority: 700
+    then:
+      - switch.turn_off: speaker_amp
+
+esp32:
+  board: esp32-p4-evboard
+  # Waveshare ESP32-P4-WIFI6-POE-ETH: 32 MB NOR flash dle vyrobce.
+  flash_size: 32MB
+  cpu_frequency: 360MHz
+  framework:
+    type: esp-idf
+    advanced:
+      enable_idf_experimental_features: yes
+    sdkconfig_options:
+      CONFIG_SPIRAM_XIP_FROM_PSRAM: y
+      CONFIG_SPIRAM_USE_MALLOC: y
+      CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL: "65536"
+
+psram:
+  speed: 200MHz
+  ignore_not_found: false
+
+# Přesné mapování pro ethernetový čip IP101 na Waveshare desce
+ethernet:
+  type: IP101
+  mdc_pin: GPIO31
+  mdio_pin: GPIO52
+  power_pin: GPIO51
+  clk:
+    pin: GPIO50
+    mode: CLK_EXT_IN
+  phy_addr: 1
+
+api:
+  encryption:
+    key: !secret esp_encryption_key # Vygeneruje Home Assistant
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+logger:
+  level: DEBUG
+
+# Inicializace sběrnice pro HuskyLens (SH1.0 I2C konektor na desce)
+i2c:
+  - id: bus_a
+    sda: GPIO7
+    scl: GPIO8
+    scan: true
+    frequency: 100kHz
+
+# Waveshare ESP32-P4-WIFI6-POE-ETH, schema: Codec U10 / PA U8.
+switch:
+  - platform: gpio
+    id: speaker_amp
+    internal: true
+    pin: GPIO53
+    restore_mode: ALWAYS_OFF
+
+# 3. Nastavení výstupu do reproduktoru přes kodek ES8311
+media_player:
+  - platform: speaker
+    name: "p4_player"
+    id: speaker_media_player
+    volume_min: 0.3
+    volume_max: 0.8
+    volume_initial: 0.3
+    announcement_pipeline:
+      speaker: box_speaker
+      format: FLAC
+      sample_rate: 48000
+      num_channels: 1
+
+sensor:
+  - platform: template
+    name: "HuskyLens ID"
+    id: husky_id
+    icon: "mdi:identifier"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(0);
+    accuracy_decimals: 0
+    filters:
+      - delta: 0.5
+
+  - platform: template
+    name: "HuskyLens X"
+    id: husky_x
+    icon: "mdi:axis-x-arrow"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(1);
+    accuracy_decimals: 0
+    filters:
+      - delta: 2.0
+
+  - platform: template
+    name: "HuskyLens Y"
+    id: husky_y
+    icon: "mdi:axis-y-arrow"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(2);
+    accuracy_decimals: 0
+    filters:
+      - delta: 2.0
+
+  - platform: template
+    name: "HuskyLens Width"
+    id: husky_width
+    icon: "mdi:arrow-expand-horizontal"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(3);
+    accuracy_decimals: 0
+    filters:
+      - delta: 2.0
+
+  - platform: template
+    name: "HuskyLens Height"
+    id: husky_height
+    icon: "mdi:arrow-expand-vertical"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(4);
+    accuracy_decimals: 0
+    filters:
+      - delta: 2.0
+
+  - platform: template
+    name: "HuskyLens Command"
+    id: husky_command
+    icon: "mdi:cog-outline"
+    update_interval: 250ms
+    lambda: |-
+      return id(husky).value(5);
+    accuracy_decimals: 0
+    filters:
+      - delta: 0.5
+
+# Bonus: Binární senzor, který v HA ukáže "on", pokud kamera právě něco detekuje
+binary_sensor:
+  - platform: template
+    name: "HuskyLens Object Detected"
+    id: husky_detected
+    device_class: presence
+    lambda: |-
+      return id(husky).detected();
+
+  - platform: template
+    name: "HuskyLens Communication OK"
+    entity_category: diagnostic
+    lambda: |-
+      return id(husky).valid();
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [huskylens_bridge]
+
+huskylens_bridge:
+  id: husky
+  i2c_id: bus_a
+  address: 0x32
+  update_interval: 250ms

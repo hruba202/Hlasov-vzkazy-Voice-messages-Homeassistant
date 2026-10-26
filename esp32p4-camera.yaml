@@ -1,0 +1,40 @@
+# Etapa B: experimentální USB-UVC kamera; před použitím vyžaduje plné sestavení.
+# Základ se přebírá beze změn včetně HuskyLens, audia a !secret.
+packages:
+  base: !include esp32p4.yaml
+
+esphome:
+  build_path: build/esp32p4-camera
+
+esp32:
+  framework:
+    version: 5.5.5
+
+psram:
+  mode: hex
+  speed: 200MHz
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [camera_log_compat]
+  - source:
+      type: git
+      url: https://github.com/youkorr/esphome
+      ref: 53a315e76c69178d913e6744314408a98bc87234
+    components: [esp_video_camera]
+
+# PR používá novější makro logování; kompatibilita s ESPHome 2026.9.0.
+camera_log_compat:
+
+# Nepřidávat usb_host: komponenta vlastní USB host stack.
+# UVC MJPEG se vyjednává jako V4L2 JPEG; volba pixel_format neexistuje.
+# max_framerate omezuje předávání do HA, nikoliv USB frame interval.
+esp_video_camera:
+  name: USB Camera
+  device: uvc
+  enable_uvc: true
+  resolution: 640x480
+  max_framerate: 10
+  usb_peripheral_map: 0x01
