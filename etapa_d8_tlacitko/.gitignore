@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.zip
+validation-*.log
+esphome-config-private.log
+.venv/
+.test-venv/
+.wsl-venv/

@@ -1,0 +1,12 @@
+ring:
+  name: Zazvonit u dveří
+  description: Zahájí hovor z P4 do připravené skupiny. V první etapě spouštějte ručně; fyzické tlačítko zatím není připojené.
+leave_message:
+  name: Výzva a hlasový vzkaz
+  description: Přehraje nakonfigurovanou výzvu a po jejím skončení spustí desetisekundový záznam P4.
+cancel_message:
+  name: Zrušit sekvenci vzkazu
+  description: Zruší čekání nebo probíhající sekvenci. Již odesílaný vzkaz nelze vzít zpět.
+visitor_press:
+  name: Stisk tlačítka návštěvníka
+  description: Podle fáze zazvoní, potvrdí zahájení záznamu nebo uloží právě nahrávaný vzkaz. Při hovoru nic nemění.

@@ -1,0 +1,22 @@
+# D8: existujici D5 + fyzicke tlacitko. Logiku stisku ridi integrace P4 Doorbell v HA.
+# Pouze beznapetovy spinaci kontakt GPIO2 <-> GND. Nikdy sem nepripojujte napeti zvonku.
+# Schema Waveshare P6: GPIO2 je vyvedeno; orientujte se podle potisku GPIO2/GND.
+packages:
+  intercom_messages: !include esp32p4-intercom-vzkazy.yaml
+
+esphome:
+  build_path: .esphome/build/esp32p4-doorbell-button
+
+binary_sensor:
+  - platform: gpio
+    id: visitor_doorbell_button
+    name: Zvonek fyzicke tlacitko
+    icon: mdi:doorbell
+    pin:
+      number: GPIO2
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on_off: 30ms
