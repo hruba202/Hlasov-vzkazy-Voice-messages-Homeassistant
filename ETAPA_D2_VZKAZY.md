@@ -45,29 +45,7 @@ automatizaci. Neobsahuje výzvy, automatické rozpoznání ticha ani notifikace.
    esphome compile esp32p4-voice-message.yaml
    ```
 
-5. Až po úspěšné plné kompilaci lze firmware nasadit. Agent nic neflashuje.
-   Lokální ověřovací binárka používá dočasné údaje a není určena k nahrání.
 
-## První test
-
-1. Ověřte běh přijímacího doplňku. Na desce zastavte hudbu; během snímání
-   nespouštějte hlášení. Příkazy přehrávače nejsou automaticky blokované.
-2. Stiskněte **Nahrat vzkaz 10 s**. Řekněte krátkou větu a chvíli mlčte.
-3. Stav má projít `Nahravam 10 s` → `Odesilam do HA` → `Ulozeno v HA`.
-   Poslední stav znamená HTTP 201 od přijímače, nikoli pouze ukončení snímání.
-4. V **Média → Moje média → vzkazy** otevřete nový WAV. Při potřebe obnovte
-   seznam. Nahrávka má 10 sekund a 960 044 bajtů; název používá čas UTC.
-5. Zkontrolujte srozumitelnost, výpadky, hlasitost, obraz kamery a HuskyLens.
-   Poté ověřte, že lze znovu přehrávat hudbu. Vyzkoušejte i předčasné zrušení
-   snímání — po něm se nový soubor nemá objevit.
-
-Očekávaný log ESP32:
-
-```text
-D2: Nahravam 10 s
-D2: Odesilam do HA
-D2: Ulozeno v HA
-```
 
 Přijímač má zapsat `Saved vzkaz_...wav: mono 48000 Hz, 16 bit, 10 seconds`.
 Při problému: 401 = jiný klíč; 400/415 = délka nebo formát; 503 = probíhá
@@ -75,29 +53,54 @@ jiný upload; 507 = limit souborů nebo málo místa. Záporný výsledek na ESP
 znamená chybu přenosu, například špatnou IP, nedostupný port či timeout.
 V klidu je varování `sound_level`, že mikrofon neběží, očekávané.
 
-## Ověřené a neověřené
-
-Pět síťových testů Python přijímače prošlo: zachování PCM ve WAV a správná
-délka/formát; odmítnutí nesprávného klíče/délky/typu; úklid přerušeného
-uploadu; limit počtu nahrávek bez mazání; odmítnutí souběžného zápisu.
-Testovací provoz byl pouze na loopback adrese tohoto PC, nikoli na HA.
-
-Validace YAML, generování C++ a plná kompilace prošly (ESPHome 2026.9.0,
-ESP-IDF 5.5.5). OTA: 1 216 928 B; factory: 1 282 464 B. Statická interní
-DIRAM: 106 410 / 576 464 B (18,5 %); statické sekce External RAM: 1 135 968 B.
-To není dynamické maximum PSRAM. Lock a log jsou v `investigation/voice-message`.
-Hash kontrola potvrdila nezměněné původní čtyři YAML soubory včetně D1.
-Dočasné secrets pro kompilaci byly odstraněny, vzniklé binárky nenahrávat.
-Docker zde není dostupný: sestavení kontejneru, instalace v HA OS, skutečný
-přenos ESP32 → HA a poslech mikrofonu zůstávají k praktickému ověření.
-Úspěšný test D1 potvrzuje vzorky a souběh kamery, nikoli srozumitelnost řeči.
-
-Dynamická spotřeba: trvale vyhrazených 960 kB PSRAM pro záznam, k tomu
-buffery mikrofonu/statistik, interní stack upload úlohy 8 KiB a síťové alokace.
-Celkové maximum RAM/PSRAM a vliv na fps je třeba změřit na desce.
-Přenos je lokální HTTP s klíčem, bez TLS; viz omezení v návodu přijímače.
 
 Vzniklo ve spolupráci s ChatGPT / Codex od OpenAI, stejně jako zbytek projektu.
 
-Aktuální doporučení po změně požadavku: viz [D3 — Assist, text a hlas](ETAPA_D3_ASSIST_POSOUZENI.md).
-D2 je zachovaná experimentální alternativa, nikoli nutná instalace pro D3.
+# D2 — A 10-second message for Home Assistant OS
+
+New YAML file: `esp32p4-voice-message.yaml`. The original configuration, including D1, remains intact. D2 inherits the 720p camera setup, the HuskyLens integration, and the `media_player` component; the microphone uses the same wiring and parameters as the successfully tested D1 configuration.
+
+## New Features
+
+- A local component, `components/voice_recorder`, captures exactly 480,000 samples (10 seconds of mono audio at 48 kHz, 16-bit) into a **960,000-byte PSRAM buffer**.
+- Once recording is complete, a separate task transmits the PCM data via HTTP to a receiver. Network-related wait times do not block the main ESPHome loop or the microphone task.
+- An add-on, `addons/p4_voice_receiver` for HA OS, saves the audio as a WAV file in the media directory.
+- Controls include **Record 10s Message** and **Cancel Message Recording**. Status monitoring features include a **Message Status** sensor, a **Recording in Progress** flag, microphone status, and RMS/Peak values.
+- No recording occurs while the system is idle. Canceling during the recording phase discards the captured audio. Once the transmission phase has begun, the cancel action is disabled, and an explanatory note is written to the log.
+- If the sample capture is incomplete, the recording process terminates after 15 seconds without uploading any data. Any attempt to start a new recording while a capture or transmission is already in progress will be rejected.
+
+This is an initial test of the recording functionality—it does not include live audio monitoring or a complete doorbell automation system. It does not include wake words, automatic silence detection, or notifications.
+
+## Installation
+
+1. Follow the [receiver instructions](addons/p4_voice_receiver/README.md).
+   No separate computer is required for standard operation, nor are any changes to Proxmox necessary.
+2. Add two entries to your **existing** ESPHome `secrets.yaml` file:
+
+   ```yaml
+   voice_receiver_ip: "HA_OS_IP_ADDRESS"
+   voice_receiver_token: "YOUR_OWN_RANDOM_64_CHARACTER_HEX_KEY"
+   ```
+
+   Replace the placeholder values; the first must be a valid IPv4 address, and the second must consist of 64 lowercase hexadecimal characters matching the `token` defined in the add-on. Keep your existing `esp_encryption_key` and `ota_password`. No passwords are hardcoded in the YAML. Do not include the transmission key in any reports or Git repositories.
+3. In addition to the new YAML file, the original three base/camera YAML files
+   and the entire `components` directory must be present. The D1 YAML is not a dependency of D2.
+4. Verify and compile using your own secrets:
+
+   ```sh
+   esphome config esp32p4-voice-message.yaml
+   esphome compile esp32p4-voice-message.yaml
+   ```
+
+
+
+The receiver should log: `Saved vzkaz_...wav: mono 48000 Hz, 16 bit, 10 seconds`.
+In case of issues: 401 = incorrect key; 400/415 = invalid length or format; 503 = another upload is already in progress; 507 = file limit reached or insufficient storage space. A negative result on the ESP32 indicates a transmission error, such as an incorrect IP address, an unreachable port, or a timeout.
+A `sound_level` warning during idle periods—indicating that the microphone is not active—is expected.
+
+
+Created in collaboration with OpenAI's ChatGPT / Codex, as was the rest of the project.
+
+   
+
+
