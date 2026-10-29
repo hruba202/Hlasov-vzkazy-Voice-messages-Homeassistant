@@ -38,21 +38,6 @@ Zůstává původní jediná `announcement_pipeline` s preferovaným FLAC / 48 k
 Nepřidávám souběžnou hudební větev ani mixer. Mikrofon a voice_assistant nejsou
 nakonfigurované. HuskyLens, API a tajemství z první etapy zůstávají zachované.
 
-## Ověření na zařízení
-
-1. Při přenosu do ESPHome přenést celý YAML i `components/huskylens_bridge`.
-   V `secrets.yaml` musí existovat `esp_encryption_key` a `ota_password`.
-2. Po startu ověřit I2C adresy 0x18 (kodek) a 0x32 (kamera).
-   Log ES8311 nesmí obsahovat `Failed to initialize` ani chybu nastavení hodin.
-3. Připojit reproduktor do určeného konektoru desky a začít hlasitostí 0.3.
-   V Home Assistantu přehrát krátký FLAC, mono, 16 bitů, 48 kHz jako oznámení.
-   Například přes akci `media_player.play_media` s `announce: true` a skutečnou
-   entitou přehrávače z této desky. URL zvuku musí být dostupná přímo z ESP32.
-4. Vyzkoušet změnu hlasitosti, ztlumení, obnovení zvuku, zastavení a nové přehrání.
-   Ověřit současně, že zůstávají aktuální hodnoty HuskyLens a funguje Ethernet.
-5. Pokud stav přejde na přehrávání, ale zvuk chybí: ověřit log kodeku, GPIO53
-   v log. 1 a při přehrávání hodinové signály na GPIO13/12/10.
-   Pokud se soubor ani nezačne přehrávat, nejprve prověřit dostupnost URL a formát.
 
 ## Zdroje
 
@@ -63,13 +48,4 @@ nakonfigurované. HuskyLens, API a tajemství z první etapy zůstávají zachov
 - Schéma a generátor instalovaného ESPHome 2026.9.0: komponenty `es8311`,
   `speaker` a `i2s_audio`.
 
-## Provedená kontrola
 
-Celý YAML prošel validací v ESPHome 2026.9.0 a úspěšně se vygenerovaly C++ zdroje
-firmware (`compile --only-generate`). Kontrola použila dočasnou kopii s testovacím
-API klíčem a OTA heslem; produkční YAML dál odkazuje na `!secret`.
-Úplná kompilace binárního firmware a zkouška zvuku na fyzické desce neproběhly.
-ESPHome upozorňuje na původní experimentální volby ESP-IDF a doporučuje novější
-šifrovaný OTA režim; tyto části nebyly předmětem audio úpravy.
-
-Po této etapě se podle zadání zastavuji; HomeKey patří do etapy 3.
