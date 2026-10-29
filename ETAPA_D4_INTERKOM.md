@@ -68,28 +68,7 @@ Obraz je samostatně dostupný v HA; tato varianta neposílá video v SIP hovoru
 Není přidán Assist, BLE ani HomeKey. Detekce obličeje zatím sama nevolá a nic
 neodemyká. Snímek a automatické vyzvánění navážeme až na ověřený ruční hovor.
 
-## První test na desce
 
-1. Ve svém ESPHome zkompilovat `esp32p4-intercom.yaml` s vlastními secrets.
-   Zde vytvořené binárky jsou pouze kontrolní, obsahují náhodné testovací
-   přístupové údaje a nejsou určeny k nasazení.
-2. Po úspěšném sestavení lze uživatelsky nahrát firmware. Zachovat si předchozí
-   funkční konfiguraci pro návrat. Agent nic neflashoval.
-3. Zkontrolovat Ethernet, obraz kamery a hodnoty HuskyLens. V logu nemají být
-   chyby inicializace ES8311/I2S ani nedostatek paměti.
-4. Ve stávajícím VoIP Stacku vyhledat ESP32-P4. V kartě vybrat existující
-   zařízení ESPHome; nezakládat druhé zařízení se stejnou identitou.
-5. Zavolat z funkčního druhého ESP na P4. Automatický příjem je standardně
-   vypnutý. Hovor přijmout kartou nebo tlačítkem
-   „Interkom volat prijmout zavesit“. Pro ruční test lze zapnout
-   „Interkom automaticky prijem“. „Interkom nerusit“ a ztlumení mikrofonu
-   musí být vypnuté.
-6. Ověřit oba směry řeči. Zařízení umístit do různých místností, začít s nízkou
-   hlasitostí. Tato první varianta neobsahuje AEC: ozvěna může nastat a samotný
-   úspěch kompilace ji nevylučuje. Při zpětné vazbě snížit hlasitost / ukončit hovor.
-7. Zkusit opačný směr přes výběr kontaktu a tlačítko volání na P4. Hovor ukončit,
-   znovu zavolat a nakonec ověřit přehrávání zprávy přes `p4_player`.
-8. Zopakovat hovor při běžícím obrazu kamery a sledovat výpadky zvuku, fps a HuskyLens.
 
 V aktivním hovoru očekáváme vlastní zprávu `D4: hovor aktivni`, při ukončení
 `D4: konec hovoru: ...`. „Interkom diagnostika“ vypíše diagnostiku komponenty.
@@ -98,26 +77,7 @@ zvukový formát a počítadla RTP. Kompatibilita s konkrétní revizí firmware
 ESP a instalovanou HA integrací se potvrdí až tímto testem. HTTPS panel ↔ panel
 není součástí této etapy.
 
-## Původní výsledky sestavení na ESPHome 2026.9.0
 
-ESPHome 2026.9.0, ESP-IDF 5.5.5. `esphome config` i plná kompilace úspěšné.
-
-| Položka | Výsledek |
-|---|---:|
-| OTA binárka | 1 464 176 B |
-| Factory binárka | 1 529 712 B |
-| Velikost obrazu podle linkeru | 1 463 780 B (8,9 % aplikačního oddílu) |
-| Statická interní RAM | 111 106 / 576 464 B (19,3 %) |
-| Statické sekce External RAM | 1 383 136 B |
-
-External RAM zahrnuje sekce přesunuté pomocí XIP, nikoli živou spotřebu kamery,
-zvukových bufferů a haldy. Linker uvádí adresní prostor 128 MiB, ne skutečnou
-kapacitu desky. Volnou fyzickou PSRAM a zatížení CPU při hovoru zatím neměříme.
-
-Sestavení hlásí upozornění na příliš vysoké výchozí lwIP hodnoty ESPHome
-(512 mailbox, TCP window 512000); IDF je odmítá a použije povolené výchozí hodnoty.
-Dále jsou upozornění na zastaralé ISP konstanty a nepoužitou pomocnou funkci.
-Žádná z těchto hlášek sestavení nezastavila. Podrobnosti:
 `investigation/intercom/compile.log`, `dependencies.lock`, `versions.json`.
 
 ## Připnuté zdroje a skutečné závislosti
@@ -127,20 +87,7 @@ Dále jsou upozornění na zastaralé ISP konstanty a nepoužitou pomocnou funkc
 - [esp_video_camera](https://github.com/youkorr/esphome/tree/53a315e76c69178d913e6744314408a98bc87234/esphome/components/esp_video_camera): `53a315e76c69178d913e6744314408a98bc87234`.
 - Referenční [esphome-intercom](https://github.com/n-IA-hane/esphome-intercom/tree/6581cfea712d0e13bf88c5aff3fa97b9e27123ab): `6581cfea712d0e13bf88c5aff3fa97b9e27123ab`.
 
-Z `dependencies.lock`: esp_codec_dev **2.0.0-beta5**, esp_audio_effects **1.3.0~1**,
-gmf_fft **1.0.0**, esp_video **2.3.0**, usb_host_uvc **2.5.2**, usb_host_uac **1.5.0**,
-esp_cam_sensor **2.3.0**, esp_h264 **1.3.0**, esp_ipa **2.2.0~1**,
-esp_sccb_intf **1.0.0**, cmake_utilities **0.5.3**, mdns **1.12.0**,
-esp-audio-libs **3.2.1**, micro-flac **0.2.0**, IDF **5.5.5**.
-libsodium a noise-c jsou lokální komponenty s verzí `*`.
-UAC je tranzitivní závislost codec_dev; konfigurace používá analogový mikrofon
-ES8311, nikoli USB mikrofon. ESPHome `usb_host` se nepřidává.
 
-## Co ještě není hotové
-
-Nahrávání hlasových vzkazů, automatická výzva po nezvednutí a automatizace
-snímek/vyzvánění nejsou touto variantou implementovány. VoIP Stack sám nemá
-hlasovou schránku — viz [dokumentace](https://github.com/n-IA-hane/esphome-intercom/blob/6581cfea712d0e13bf88c5aff3fa97b9e27123ab/docs/AUTOMATION_DIALPLAN.md#L1275).
 Tato etapa připravuje konkrétně připojení dveřní P4 k existujícím telefonům.
 
 Konfiguraci a ověření kompilace připravil ChatGPT / Codex od OpenAI s využitím
