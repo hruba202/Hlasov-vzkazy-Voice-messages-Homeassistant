@@ -1,13 +1,9 @@
 # Etapa B – USB kamera
 
-Upřesnění 21. 10. 2026: celé dosavadní testování včetně dodaných logů proběhlo
-dle uživatele na Jelly Comb (1BCF:28C4, Windows: FHD Camera). Druhá kamera
-Nulaxy (0C45:636B, Windows: USB 2.0 Camera) byla také samostatně otestována
-a funguje. Uvedené statistiky patří Jelly Comb, nikoli Nulaxy nebo Logitechu.
-Původní přiřazení úspěšných testů Logitechu C270 bylo chybné.
-C270 (046D:0825) při testu na P4 není rozpoznána: USB host hlásí 0 zařízení.
+ Jelly Comb (1BCF:28C4, Windows: FHD Camera)  funguje.
+Nulaxy (0C45:636B, Windows: USB 2.0 Camera)  funguje. 
+Logitech C270 (046D:0825) při testu na P4 není rozpoznána: USB host hlásí 0 zařízení.
 
-Datum: 20. 10. 2026. Bez flashování.
 
 ## Konfigurace
 
@@ -32,18 +28,7 @@ MJPEG není samostatná YAML volba: UVC větev žádá V4L2 JPEG a předává ko
 snímky přímo. max_framerate omezuje předávání do HA; nenastavuje frekvenci USB
 kamery. jpeg_quality je parametr jiné, hardwarově kódující větve.
 
-## Oprava USB #538 / #571
 
-PR https://github.com/espressif/esp-usb/pull/571 byl sloučen 6. 10. 2026.
-Oprava znovu vybere alternativní isochronní rozhraní podle vyjednaného payloadu.
-Issue https://github.com/espressif/esp-usb/issues/538 je uzavřený s milníkem 2.6.1.
-Milník však není důkaz vydání.
-
-Při kontrole 20. 10. 2026 endpoint registru
-https://components.espressif.com/components/espressif/usb_host_uvc/versions/2.6.1/changelog
-vrátil HTTP 404. Aktuálně stažený upstream CHANGELOG končí 2.6.0 z 16. 9. 2026.
-Vydanou verzi obsahující #571 se tedy nepodařilo doložit.
-Zdroj: https://github.com/espressif/esp-usb/blob/master/host/class/uvc/usb_host_uvc/CHANGELOG.md
 
 Připnutá komponenta požaduje esp_video 2.3.0 a usb_host_uvc 2.5.*; automatický
 přechod na nevydanou opravu se neprovádí. Skutečně vyřešené závislosti a stav
@@ -81,26 +66,7 @@ Porovnání po sloučení packages potvrdilo totožnost bloků huskylens_bridge,
 sensor, binary_sensor, media_player, speaker, i2s_audio, audio_dac, switch,
 i2c a ethernet vůči původnímu souboru. Výsledek je uložen v
 `investigation/camera/preservation-check.txt`.
-Logy: `investigation/camera/config.log` a `investigation/camera/build.log`.
-Projekt neobsahoval secrets.yaml, proto byly pro sestavení vytvořeny dočasné
-testovací údaje. Binárka s nimi není určena k nasazení. Produkční secrets musí
-dodat uživatel před vlastním sestavením pro desku.
-Dočasný secrets.yaml byl po dokončení odstraněn a testovací údaje byly
-odstraněny z reportových logů. Velikosti a SHA-256 binárek jsou uložené v
-`investigation/camera/build-artifacts.json`.
 
-První plná kompilace selhala na `esp_video_camera.cpp:50`: ESPHome 2026.9.0
-nezná `ESPHOME_LOG_TAG`. Následné chyby neznámého TAG jsou důsledkem stejné
-příčiny, nikoli dalších problémů USB. První log:
-`investigation/camera/build-first-failure.log`.
-Po přidání camera_log_compat validace i plná kompilace prošly:
-`INFO Successfully compiled program.` Výstupní kód 0.
-
-Příkazy ověření:
-```
-.venv/Scripts/python.exe -m esphome config esp32p4-camera.yaml
-.venv/Scripts/python.exe -m esphome compile esp32p4-camera.yaml
-```
 Při sestavení byla nastavena proměnná prostředí
 `ESPHOME_IDF_DEFAULT_TARGETS=esp32p4` pro výběr nástrojů pouze pro tento čip.
 
@@ -121,46 +87,5 @@ pro External RAM adresní oblast přibližně 128 MiB, proto jeho 0,83 % **není
 procento fyzické 32MiB PSRAM této desky. Statické sekce odpovídají přibližně
 3,32 % z nominálních 32 MiB, bez dynamických alokací a rezervací.
 
-Soubory jsou v `.esphome/build/esp32p4-camera/build/`. Jsou pouze dokladem
-sestavitelnosti s dočasnými testovacími údaji, nikoli firmwarem pro nasazení.
-Spotřeba PSRAM za běhu, špičky alokací, FPS a souběh s audiem se bez měření na
-desce určit nedají. Statická RAM z linkeru není celková spotřeba paměti za běhu.
 
-## Následný test na desce – až po úspěšném sestavení
 
-### Výsledek uživatelského testu 20. 10. 2026
-
-Uživatel potvrdil funkční USB kameru s naší variantou esp32p4-camera.yaml.
-Přiložený log z 22:39–22:42 dokládá běžící firmware ESPHome **2026.9.1**
-(lokální kompilace výše byla 2026.9.0), ESP32-P4 rev1.3, PSRAM 32768 KB,
-Ethernet 100 Mb/s full duplex a UVC /dev/video40 v rozlišení 640x480.
-Po úvodním hlášení 12,2 fps následují 7,5 / 8,1 / 8,1 / 8,3 fps při
-49 688–56 820 B/snímek. Úvodní údaj přesahuje nastavený limit 10 fps;
-příčina není tímto výřezem doložena. Dlouhodobých 10 fps z logu potvrdit nelze.
-
-Audio pipeline načetla FLAC 48 kHz / mono / 16 bit, přešla do PLAYING,
-spustila I2S speaker a poté se vrátila do IDLE. To nepotvrzuje slyšitelný zvuk
-ani souběh s obrazem: audio skončilo před uvedenými statistikami kamery.
-I2C našlo 0x18 a 0x32; správnost detekcí HuskyLens výřez neukazuje.
-
-Log obsahuje `Last reset too quick; invoke in 6 restarts`. Je to záznam
-počítadla krátkých předchozích běhů, nikoli důkaz pádu kamery; příčina restartů
-není doložená. Ve výřezu nejsou chyby USB, alokace ani watchdogu.
-Zbývá delší souběžný test obrazu, audia a HuskyLens a měření volné PSRAM.
-Následně uživatel výslovně potvrdil současný běh: kamera běží, hudba hraje
-a HuskyLens načítá. Souběh všech tří funkcí a slyšitelný zvuk jsou tedy
-ověřené uživatelským testem. Délka testu, volná PSRAM a příčina dřívějších
-krátkých restartů nebyly uvedeny. Základ 640x480 je funkčně ověřený.
-Etapa C dosud nebyla zahájena.
-
-1. Zkontrolovat 5V VBUS při PoE s připojenou C270.
-2. S vlastním secrets.yaml znovu sestavit. V této etapě se neflashuje.
-3. Při pozdějším povoleném testu očekávat
-   `USB Host installed (peripheral map 0x1)` a
-   `Capture resolution: 640x480 (JPEG)`.
-4. Otevřít kamerovou entitu přes ESPHome integraci HA. Při odběru obrazu
-   očekávat statistiky rozlišení, fps a B/frame.
-5. Ověřit současné audio a aktualizace HuskyLens; sledovat volnou interní
-   paměť i PSRAM a největší volný blok. Zkusit odpojení a znovupřipojení kamery.
-6. Při opakovaných `missed EoF`, chybách vyjednání, timeoutu, restartu watchdogem
-   nebo poklesu napájení nepokračovat na 720p.
