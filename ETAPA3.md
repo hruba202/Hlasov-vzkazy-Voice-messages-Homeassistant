@@ -31,9 +31,7 @@ Kontrolováno 20. 10. 2026:
    konstanty proto není dostatečný důkaz funkce celé sestavy.
 
 K dokončení na P4 je potřeba port/oprava těchto závislostí, následná úplná kompilace
-a zkouška párování po Ethernetu a autentizace telefonu. Zachoval jsem požadovaný
-zdroj `github://rednblkx/HAP-ESPHome@main`; nevyměnil jsem jej za jiný fork.
-Přidáním Wi-Fi nebo ESP-Hosted by se známá chybějící větev pro P4 neopravila.
+a zkouška párování po Ethernetu a autentizace telefonu.
 
 Oprava mého předběžného závěru z etapy 1: obecná závislost Python komponenty
 na `network` sama o sobě nepotvrzuje Ethernet podporu její implementace.
@@ -55,7 +53,7 @@ na `network` sama o sobě nepotvrzuje Ethernet podporu její implementace.
 
 Zámek je stejně jako v předloze **pouze stavová entita**. Neovládá fyzické relé
 ani motor a nepotvrzuje skutečnou polohu dveří. Logika při úspěšné autentizaci
-střídá zamknuto/odemknuto; neměnil jsem ji na pouhé odemknutí.
+střídá zamknuto/odemknuto;
 
 ## Návrh zapojení PN532 na 40pin header P6
 
@@ -100,29 +98,7 @@ Vlastní partition table tedy nepřidávám. Po úspěšné plné kompilaci je j
 ověřit velikost binárního souboru a před OTA porovnat rozložení s firmwarem skutečně
 nahraným v zařízení. Změna či vymazání NVS může zrušit HomeKit/HomeKey párování.
 
-## Co ověřit po opravě kompatibility, před přechodem na BLE
 
-1. Doplnit skutečné `homekit_setup_code` jako řetězec ve formátu `XXX-XX-XXX`
-   do soukromého `secrets.yaml`; použít platný vlastní párovací kód.
-2. Potvrdit revizi desky a zapojení PN532 podle výše uvedené tabulky.
-3. Sestavit celý firmware po opravě SDK. Nestačí pouze validace nebo generování C++.
-4. V logu ověřit inicializaci PN532, NVS a HAP. Sledovat také restartování a paměť
-   při současném přehrávání a čtení HuskyLens.
-5. Přes Ethernet ověřit mDNS oznámení `_hap._tcp`, přístup z Apple Domácnosti
-   a párování. Při oddělených VLAN musí síť propouštět potřebný provoz.
-   Výchozí HAP port tohoto komponentu je TCP 32042, mDNS UDP 5353.
-6. Otestovat přidání Home Key do Wallet, úspěšnou i neúspěšnou autentizaci,
-   zachované přepínání stavu a přežití párování po restartu.
-   Dostupnost Home Key v této sestavě zatím nebyla ověřena na hardwaru.
-
-## Rozsah provedeného ověření
-
-Validace a generování zdrojů uspěly s lokální kopií výše uvedeného commitu
-HAP-ESPHome a dočasnými testovacími tajemstvími. Distribuovaný návrh používá
-požadované `@main`; tato větev se může později změnit.
-Stažené referenční repozitáře jsou v `.reference` a nejsou nutné pro použití
-návrhu s GitHub zdrojem. Dočasná testovací konfigurace byla odstraněna.
-Firmware nebyl zkompilován, nahrán ani testován na desce.
 
 ## Přímé zdroje
 
