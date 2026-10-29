@@ -22,5 +22,16 @@ nejsou součástí tohoto kroku.
 - Test se odmítne spustit při aktivním reproduktoru nebo selhání kodeku.
   Na rozběhnutí mikrofonu čeká nejvýše 5 sekund, pak požádá o zastavení.
 
+Stage D1 — Built-in Microphone Test
+Configuration: `esp32p4-microphone-test.yaml`. Date: October 21, 2026. This stage focuses on verifying audio input; live monitoring, message recording, and voice assistant functionality are not included.
 
+Changes
+This new variant inherits from `esp32p4-camera-720p.yaml`, including the camera, HuskyLens, and `media_player`. The original three YAML files remain unmodified.
+A separate build directory is used: `.esphome/build/esp32p4-microphone-test`.
+Microphone via ES8311: GPIO11, shared I²S bus, 48 ​​kHz, 16-bit, left channel, MCLK ×256, no PDM, with DC offset correction.
+In this variant, the ES8311 microphone gain is set to 24 dB (down from the default 42 dB). Playback parameters remain unchanged. The correct channel and gain settings still require physical verification on the board.
+Two buttons in HA: "Microphone Test 30s" and "Microphone Stop."
+Diagnostics: "Microphone Capturing," "Microphone RMS," and "Microphone Peak."
+Capture remains disabled upon device startup. The test runs for 30 seconds once the microphone has successfully initialized; it can also be stopped manually before the time elapses. Pressing the button again while a test is already in progress will not trigger a concurrent capture session.
+The test will not start if the speaker is active or if the codec fails to initialize. The system waits up to 5 seconds for the microphone to start; if it fails to do so, it triggers a stop command.
 
