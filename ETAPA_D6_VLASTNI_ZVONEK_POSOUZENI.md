@@ -1,20 +1,5 @@
 # D6 / etapa A — vlastní dveřní interkom: posouzení
 
-Datum: 25. 10. 2026. Jen průzkum a návrh; žádný nový firmware, YAML, nasazení ani změna HA.
-
-**Závěr:** popsaný zvonek je realizovatelný. Nejmenší cestou je vlastní ovládání,
-pravidla zvonku a hlasová schránka nad stávajícím hovorem. Úplné odstranění HA
-integrace VoIP Stack je také možné, ale znamená převzít správu spojení a audio
-most. Odstranění i ESP komponenty `voip_stack` znamená navíc nový přenosový
-modul na každém přijímacím ESP. Samotné `esp_audio_stack` lze ponechat ve všech
-variantách jako ovladač sdíleného mikrofonu/reproduktoru.
-
-Označení v této zprávě:
-
-- **OVĚŘENO VE ZDROJÍCH**: doloženo uvedenou revizí, nikoli automaticky provozem v tvém HA.
-- **OVĚŘENO UŽIVATELEM**: dosavadní obousměrný hovor, kamera, HuskyLens a záznam z prohlížeče do HA.
-- **NÁVRH / ODHAD**: rozhodnutí pro vlastní systém, zatím nenaprogramované.
-- **NEOVĚŘENO**: vyžaduje zkoušku konkrétního hardwaru nebo instalace.
 
 ## 1. Výchozí stav a důležitá rozlišení
 
