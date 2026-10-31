@@ -54,38 +54,55 @@ Zdroj: kopie `investigation/camera/dependencies.lock` z tohoto sestavení.
 | esphome/noise-c | lock uvádí `*`; checkout `0266a6f871dfb278956be2c1f9a1b11d179c701f` |
 | esphome/libsodium | lock uvádí `*`; checkout `0266a6f871dfb278956be2c1f9a1b11d179c701f` |
 
-Lock obsahuje rovněž kontrolní hashe balíčků. Jde o záznam tohoto sestavení,
-nikoliv záruku, že budoucí čisté sestavení znovu vybere všechny stejné verze.
-Checkout externí komponenty byl ověřen pomocí git rev-parse HEAD.
-Stažený ovladač 2.5.2 neobsahuje funkci `uvc_select_alt_setting` z opravy #571.
 
-## Ověření a omezení
+# Stage B – USB Camera
 
-`esphome config esp32p4-camera.yaml` prošlo. C++ byl vygenerován.
-Porovnání po sloučení packages potvrdilo totožnost bloků huskylens_bridge,
-sensor, binary_sensor, media_player, speaker, i2s_audio, audio_dac, switch,
-i2c a ethernet vůči původnímu souboru. Výsledek je uložen v
-`investigation/camera/preservation-check.txt`.
+Jelly Comb (1BCF:28C4, Windows: FHD Camera) works.
+Nulaxy (0C45:636B, Windows: USB 2.0 Camera) works.
+Logitech C270 (046D:0825) is not recognized during testing on the P4: the USB host reports 0 devices.
 
-Při sestavení byla nastavena proměnná prostředí
-`ESPHOME_IDF_DEFAULT_TARGETS=esp32p4` pro výběr nástrojů pouze pro tento čip.
+## Configuration
 
-| Výsledek | Velikost / využití |
+`esp32p4-camera.yaml` incorporates `esp32p4.yaml` via `packages`. The original file remains unchanged. HuskyLens, I2C, Ethernet, `media_player`, speaker, codec, and amplifier control are inherited without modification. Existing `!secret` references are also preserved.
+
+Added:
+- ESP-IDF explicitly set to 5.5.5; ESPHome version 2026.9.0 used for verification.
+- PSRAM mode: `hex`, speed: 200 MHz.
+- Dedicated build directory: `.esphome/build/esp32p4-camera`.
+- External `esp_video_camera` component from `youkorr/esphome` (commit `53a315e76c69178d913e6744314408a98bc87234`).
+- UVC, 640x480 resolution, `max_framerate` 10, `usb_peripheral_map` 0x01.
+- No `usb_host`, BLE proxy, or HomeKey.
+- Local `camera_log_compat`: defines the `ESPHOME_LOG_TAG` macro—used by a more recent PR—as a standard `static const char *const`. Intended for the verified ESPHome version 2026.9.0. Re-evaluate the need for this compatibility when updating ESPHome.
+  The source for the pinned component remains unchanged.
+
+MJPEG is not a standalone YAML option: the UVC branch requests V4L2 JPEG and passes the compressed
+frames directly. `max_framerate` limits the stream passed to HA; it does not configure the USB
+camera's frame rate. `jpeg_quality` is a parameter belonging to a different branch that performs hardware encoding.
+
+
+
+The pinned component requires `esp_video` 2.3.0 and `usb_host_uvc` 2.5.*; it does not automatically
+upgrade to an unreleased fix. The actual resolved dependencies and build status
+are listed below.
+
+## Actual Resolved Dependencies
+
+Source: a copy of `investigation/camera/dependencies.lock` from this build.
+
+| Component | Resolved Version |
 |---|---|
-| firmware.ota.bin (a esp32p4.bin) | 1 193 632 B |
-| firmware.factory.bin | 1 259 168 B |
-| Obraz podle linkeru, bez paddingu | 1 193 224 B |
-| Aplikační oddíl | 16 515 072 B; využito přibližně 7,2 % |
-| Interní DIRAM, staticky | 105 666 B / 576 464 B = 18,33 % |
-| HP core RAM | 142 B |
-| LP RAM | 56 B |
-| External RAM, statické sekce | 1 112 668 B |
-
-External RAM obsahuje .text 817 376 B, .rodata 294 760 B, .init_array 276 B
-a .appdesc 256 B. Základ má zapnuté XIP z PSRAM. Výpis nástroje size používá
-pro External RAM adresní oblast přibližně 128 MiB, proto jeho 0,83 % **není**
-procento fyzické 32MiB PSRAM této desky. Statické sekce odpovídají přibližně
-3,32 % z nominálních 32 MiB, bez dynamických alokací a rezervací.
-
+| idf | 5.5.5 |
+| espressif/esp_video | 2.3.0 |
+| espressif/usb_host_uvc | 2.5.2 |
+| espressif/esp_cam_sensor | 2.3.0 |
+| espressif/esp_ipa | 2.2.0~1 |
+| espressif/esp_h264 | 1.3.0 |
+| espressif/esp_sccb_intf | 0.0.9 |
+| espressif/cmake_utilities | 0.5.3 |
+| espressif/mdns | 1.12.0 |
+| esphome/esp-audio-libs | 3.2.1 |
+| esphome/micro-flac | 0.2.0 |
+| esphome/noise-c | lock specifies `*`; checkout `0266a6f871dfb278956be2c1f9a1b11d179c701f` |
+| esphome/libsodium | lock specifies `*`; checkout `0266a6f871dfb278956be2c1f9a1b11d179c701f` |
 
 
