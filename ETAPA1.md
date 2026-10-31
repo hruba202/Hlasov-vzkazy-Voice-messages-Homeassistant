@@ -7,11 +7,16 @@ vedle YAML.
 Dodaná deska je **Waveshare ESP32-P4-WIFI6-POE-ETH**, podle aktuální dokumentace
 výrobce s 32 MB NOR flash a C6-MINI-1U-H8. 
 
+The complete resulting YAML file is located in `esp32p4.yaml`. 
+The local external component is in `components/huskylens_bridge/`;
+when copying to ESPHome, ensure you also include this folder alongside the YAML file.
+
+The board provided is the **Waveshare ESP32-P4-WIFI6-POE-ETH**, which,
+according to the manufacturer's current documentation, features 32 MB of NOR flash and a C6-MINI-1U-H8 module.
 
 
 
-
-## Zdroje
+## Zdroje/Resources
 
 - https://esphome.io/blog/2025/11/19/esphome-2025-11/
 - https://esphome.io/blog/2026/09/16/esphome-2026-9/
