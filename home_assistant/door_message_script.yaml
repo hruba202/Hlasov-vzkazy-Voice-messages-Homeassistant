@@ -69,3 +69,80 @@ sequence:
         data:
           title: "Vzkaz od dveri - bez prepisu"
           message: "Nepodarilo se ziskat text. Zkontrolujte stopu skriptu, ceskou STT pipeline a log ESPHome."
+
+
+
+
+###EN 
+
+alias: "Door - Receive Text Message"
+description: "Plays a prompt, captures free-form speech, and displays it in HA. Does not execute commands."
+mode: single
+fields:
+  satellite:
+    name: "Assist satellite at the door"
+    required: true
+    selector:
+      entity:
+        domain: assist_satellite
+  player:
+    name: "Media player on the same device"
+    required: true
+    selector:
+      entity:
+        domain: media_player
+  archive_notify:
+    name: "Optional text archive (File notify entity)"
+    description: "Leave empty for initial testing. Once the File integration is set up, select its notify entity."
+    required: false
+    selector:
+      entity:
+        domain: notify
+sequence:
+  - if:
+      - condition: template
+        value_template: "{{ states(satellite) != 'idle' }}"
+    then:
+      - action: persistent_notification.create
+        data:
+          title: "Message from the door - cannot start"
+          message: "Satellite is not ready: {{ states(satellite) }}. Check the connection and the status of the previous run."
+      - stop: "Satellite is not idle"
+  - action: media_player.media_stop
+    target:
+      entity_id: "{{ player }}"
+  - delay: "00:00:01"
+  - action: assist_satellite.ask_question
+    data:
+      entity_id: "{{ satellite }}"
+      question: "Please leave a short message for the owner."
+      preannounce: false
+    response_variable: door_answer
+    continue_on_error: true
+  - if:
+      - condition: template
+        value_template: >-
+          {{ door_answer is defined and door_answer is mapping
+             and (door_answer.get('sentence', '') | trim | length) > 0 }}
+    then:
+      - action: persistent_notification.create
+        data:
+          title: "Vzkaz od dveri - {{ now().strftime('%d.%m. %H:%M') }}"
+          message: "{{ door_answer.sentence }}"
+      - if:
+          - condition: template
+            value_template: "{{ (archive_notify | default('', true) | length) > 0 }}"
+        then:
+          - action: notify.send_message
+            target:
+              entity_id: "{{ archive_notify }}"
+            data:
+              message: >-
+                {{ {'time': now().isoformat(), 'text': door_answer.sentence} | to_json }}
+    else:
+      - action: persistent_notification.create
+        data:
+ 
+          title: "A message from the door - no transcript"
+          message: "Failed to get text. Check script trace, Czech STT pipeline and ESPHome log."  
+          
