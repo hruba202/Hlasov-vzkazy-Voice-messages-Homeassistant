@@ -6,7 +6,8 @@ vlastní integrace HA **Voice Inbox** (univerzální příjem zvuku z ESP32 a z
 prohlížeče) a firmware ESPHome pro desku **Waveshare ESP32-P4-WIFI6-POE-ETH**
 (USB kamera, mikrofon/reproduktor ES8311, interkom, HuskyLens).
 
-
+Voicebox-Hacs/Marketplace:
+https://github.com/hruba202/voice-inbox
 
 ## Stručný souhrn / Short summary
 
